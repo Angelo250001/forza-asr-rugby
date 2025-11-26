@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ForzaASRRugbyMilano - Card Manager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.5s ease-out; }
+    .hover-lift { transition: transform 0.2s; }
+    .hover-lift:hover { transform: translateY(-4px); }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
+  
+  <!-- Header -->
+  <header class="sticky top-0 z-50 backdrop-blur-xl bg-white/70 border-b border-slate-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 py-6">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+            <span class="text-2xl">✨</span>
+          </div>
+          <div>
+            <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              ForzaASRRugbyMilano
+            </h1>
+            <p class="text-sm text-slate-600 mt-0.5">Gestisci le tue schede con stile</p>
+          </div>
+        </div>
+        <button onclick="openCreateModal()" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow-lg hover:shadow-xl transition-all font-medium">
+          ➕ Nuova Scheda
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="max-w-7xl mx-auto px-4 py-8">
+    
+    <!-- Search Bar -->
+    <div class="mb-8 fade-in">
+      <div class="max-w-2xl mx-auto relative">
+        <input 
+          type="text" 
+          id="searchInput"
+          placeholder="🔍 Cerca per titolo, descrizione o tag..."
+          class="w-full px-6 py-4 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:outline-none shadow-sm"
+          oninput="filterCards()"
+        >
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div id="stats" class="mb-6 p-4 bg-white/60 backdrop-blur-sm rounded-xl border border-slate-200 shadow-sm fade-in hidden">
+      <div class="text-sm text-slate-600">
+        📊 Totale schede: <strong id="totalCards" class="text-slate-900">0</strong>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading" class="text-center py-12">
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+      <p class="mt-4 text-slate-600">Caricamento...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="text-center py-12 hidden">
+      <div class="text-6xl mb-4">📋</div>
+      <h3 class="text-2xl font-bold text-slate-900 mb-2">Nessuna scheda ancora</h3>
+      <p class="text-slate-600 mb-6">Crea la tua prima scheda per iniziare!</p>
+      <button onclick="openCreateModal()" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+        Crea Prima Scheda
+      </button>
+    </div>
+
+    <!-- Cards Grid -->
+    <div id="cardsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+  </main>
+
+  <!-- Modal Crea/Modifica Card -->
+  <div id="modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="p-6">
+        <div class="flex justify-between items-center mb-6">
+          <h2 id="modalTitle" class="text-2xl font-bold text-slate-900">Crea Nuova Scheda</h2>
+          <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 text-2xl">×</button>
+        </div>
+        
+        <form id="cardForm" onsubmit="handleSubmit(event)" class="space-y-6">
+          <!-- Image Upload -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Immagine *</label>
+            <input type="file" id="imageInput" accept="image/*" required class="hidden" onchange="previewImage(event)">
+            <div id="imagePreview" onclick="document.getElementById('imageInput').click()" class="cursor-pointer border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-blue-500 transition">
+              <div class="text-4xl mb-2">📸</div>
+              <p class="text-slate-600">Clicca per caricare un'immagine</p>
+            </div>
+          </div>
+
+          <!-- Title -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Titolo *</label>
+            <input type="text" id="titleInput" required class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Inserisci il titolo">
+          </div>
+
+          <!-- Description -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Descrizione *</label>
+            <textarea id="descriptionInput" required rows="4" class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none" placeholder="Inserisci la descrizione"></textarea>
+          </div>
+
+          <!-- Tags -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Tag (separati da virgola)</label>
+            <input type="text" id="tagsInput" class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="es. rugby, squadra, milano">
+          </div>
+
+          <!-- Buttons -->
+          <div class="flex gap-3 pt-4">
+            <button type="button" onclick="closeModal()" class="flex-1 px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition font-medium">
+              Annulla
+            </button>
+            <button type="submit" id="submitBtn" class="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">
+              Crea Scheda
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Dettaglio Card -->
+  <div id="detailModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4" onclick="closeDetailModal()">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+      <div id="detailContent"></div>
+    </div>
+  </div>
+
+  <script>
+    let cards = [];
+    let editingCardId = null;
+    const API_URL = window.location.origin;
+
+    // Carica cards all'avvio
+    loadCards();
+
+    async function loadCards() {
+      try {
+        const response = await fetch(`${API_URL}/api/cards`);
+        cards = await response.json();
+        renderCards();
+      } catch (error) {
+        console.error('Errore caricamento:', error);
+        document.getElementById('loading').innerHTML = '<p class="text-red-600">Errore nel caricamento delle schede</p>';
+      }
+    }
+
+    function renderCards() {
+      const loading = document.getElementById('loading');
+      const emptyState = document.getElementById('emptyState');
+      const grid = document.getElementById('cardsGrid');
+      const stats = document.getElementById('stats');
+      
+      loading.classList.add('hidden');
+      
+      if (cards.length === 0) {
+        emptyState.classList.remove('hidden');
+        grid.innerHTML = '';
+        stats.classList.add('hidden');
+        return;
+      }
+      
+      emptyState.classList.add('hidden');
+      stats.classList.remove('hidden');
+      document.getElementById('totalCards').textContent = cards.length;
+      
+      grid.innerHTML = cards.map(card => `
+        <div class="bg-white rounded-xl shadow-md hover-lift overflow-hidden fade-in">
+          <div class="aspect-video bg-slate-100 overflow-hidden cursor-pointer" onclick="showDetail('${card.id}')">
+            <img src="${card.imageUrl}" alt="${card.title}" class="w-full h-full object-cover">
+          </div>
+          <div class="p-4">
+            <h3 class="font-bold text-lg text-slate-900 mb-2 line-clamp-2">${card.title}</h3>
+            <p class="text-slate-600 text-sm mb-4 line-clamp-2">${card.description}</p>
+            ${card.tags ? `<div class="flex flex-wrap gap-2 mb-4">${card.tags.split(',').map(tag => `<span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">${tag.trim()}</span>`).join('')}</div>` : ''}
+            <div class="flex gap-2">
+              <button onclick="editCard('${card.id}')" class="flex-1 px-3 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition text-sm font-medium">
+                ✏️ Modifica
+              </button>
+              <button onclick="deleteCard('${card.id}', '${card.title.replace(/'/g, "\\'")}')" class="flex-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition text-sm font-medium">
+                🗑️ Elimina
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function filterCards() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const filtered = cards.filter(card => 
+        card.title.toLowerCase().includes(query) ||
+        card.description.toLowerCase().includes(query) ||
+        card.tags.toLowerCase().includes(query)
+      );
+      
+      const grid = document.getElementById('cardsGrid');
+      grid.innerHTML = filtered.map(card => `
+        <div class="bg-white rounded-xl shadow-md hover-lift overflow-hidden">
+          <div class="aspect-video bg-slate-100 overflow-hidden cursor-pointer" onclick="showDetail('${card.id}')">
+            <img src="${card.imageUrl}" alt="${card.title}" class="w-full h-full object-cover">
+          </div>
+          <div class="p-4">
+            <h3 class="font-bold text-lg text-slate-900 mb-2 line-clamp-2">${card.title}</h3>
+            <p class="text-slate-600 text-sm mb-4 line-clamp-2">${card.description}</p>
+            ${card.tags ? `<div class="flex flex-wrap gap-2 mb-4">${card.tags.split(',').map(tag => `<span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">${tag.trim()}</span>`).join('')}</div>` : ''}
+            <div class="flex gap-2">
+              <button onclick="editCard('${card.id}')" class="flex-1 px-3 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition text-sm font-medium">✏️ Modifica</button>
+              <button onclick="deleteCard('${card.id}', '${card.title.replace(/'/g, "\\'")}')" class="flex-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition text-sm font-medium">🗑️ Elimina</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function openCreateModal() {
+      editingCardId = null;
+      document.getElementById('modalTitle').textContent = 'Crea Nuova Scheda';
+      document.getElementById('submitBtn').textContent = 'Crea Scheda';
+      document.getElementById('cardForm').reset();
+      document.getElementById('imagePreview').innerHTML = '<div class="text-4xl mb-2">📸</div><p class="text-slate-600">Clicca per caricare un\'immagine</p>';
+      document.getElementById('modal').classList.remove('hidden');
+      document.getElementById('modal').classList.add('flex');
+    }
+
+    function editCard(id) {
+      const card = cards.find(c => c.id === id);
+      if (!card) return;
+      
+      editingCardId = id;
+      document.getElementById('modalTitle').textContent = 'Modifica Scheda';
+      document.getElementById('submitBtn').textContent = 'Salva Modifiche';
+      document.getElementById('titleInput').value = card.title;
+      document.getElementById('descriptionInput').value = card.description;
+      document.getElementById('tagsInput').value = card.tags;
+      document.getElementById('imagePreview').innerHTML = `<img src="${card.imageUrl}" class="w-full h-48 object-cover rounded-lg">`;
+      document.getElementById('imageInput').removeAttribute('required');
+      document.getElementById('modal').classList.remove('hidden');
+      document.getElementById('modal').classList.add('flex');
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.add('hidden');
+      document.getElementById('modal').classList.remove('flex');
+      document.getElementById('cardForm').reset();
+      editingCardId = null;
+      document.getElementById('imageInput').setAttribute('required', 'required');
+    }
+
+    function previewImage(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          document.getElementById('imagePreview').innerHTML = `<img src="${e.target.result}" class="w-full h-48 object-cover rounded-lg">`;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    async function handleSubmit(event) {
+      event.preventDefault();
+      
+      const formData = new FormData();
+      const imageFile = document.getElementById('imageInput').files[0];
+      if (imageFile) formData.append('image', imageFile);
+      formData.append('title', document.getElementById('titleInput').value);
+      formData.append('description', document.getElementById('descriptionInput').value);
+      formData.append('tags', document.getElementById('tagsInput').value);
+      
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = '⏳ Salvataggio...';
+      
+      try {
+        const url = editingCardId ? `${API_URL}/api/cards/${editingCardId}` : `${API_URL}/api/cards`;
+        const method = editingCardId ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, { method, body: formData });
+        
+        if (response.ok) {
+          closeModal();
+          await loadCards();
+          alert(editingCardId ? '✅ Scheda aggiornata!' : '✅ Scheda creata!');
+        } else {
+          alert('❌ Errore nel salvataggio');
+        }
+      } catch (error) {
+        alert('❌ Errore di connessione');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = editingCardId ? 'Salva Modifiche' : 'Crea Scheda';
+      }
+    }
+
+    async function deleteCard(id, title) {
+      if (!confirm(`Sei sicuro di voler eliminare "${title}"?`)) return;
+      
+      try {
+        const response = await fetch(`${API_URL}/api/cards/${id}`, { method: 'DELETE' });
+        if (response.ok) {
+          await loadCards();
+          alert('✅ Scheda eliminata!');
+        } else {
+          alert('❌ Errore nell\'eliminazione');
+        }
+      } catch (error) {
+        alert('❌ Errore di connessione');
+      }
+    }
+
+    function showDetail(id) {
+      const card = cards.find(c => c.id === id);
+      if (!card) return;
+      
+      const tags = card.tags ? card.tags.split(',').map(tag => `<span class="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">${tag.trim()}</span>`).join('') : '';
+      
+      document.getElementById('detailContent').innerHTML = `
+        <img src="${card.imageUrl}" alt="${card.title}" class="w-full aspect-video object-cover">
+        <div class="p-6">
+          <h2 class="text-3xl font-bold text-slate-900 mb-4">${card.title}</h2>
+          <p class="text-slate-700 text-lg mb-6 whitespace-pre-wrap">${card.description}</p>
+          ${tags ? `<div class="flex flex-wrap gap-2">${tags}</div>` : ''}
+        </div>
+      `;
+      
+      document.getElementById('detailModal').classList.remove('hidden');
+      document.getElementById('detailModal').classList.add('flex');
+    }
+
+    function closeDetailModal() {
+      document.getElementById('detailModal').classList.add('hidden');
+      document.getElementById('detailModal').classList.remove('flex');
+    }
+  </script>
+</body>
+</html>
